@@ -1,8 +1,8 @@
 {
     "name": "com.dabyeol.riumaqua.service",
     "version": "1.0.0",
-    "description": "Helloworld service",
-    "main": "helloworld_webos_service.js",
+    "description": "Rium Aqua service",
+    "main": "service.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "postinstall": "patch-package"
@@ -10,6 +10,7 @@
     "author": "",
     "license": "BSD",
     "dependencies": {
-        "@types/webos-service": "^0.4.2"
+        "@types/webos-service": "^0.4.2",
+        "node-dht-sensor": "^0.4.3"
     }
 }
