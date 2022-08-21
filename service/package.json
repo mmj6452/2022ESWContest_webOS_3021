@@ -10,7 +10,6 @@
     "author": "",
     "license": "BSD",
     "dependencies": {
-        "@types/webos-service": "^0.4.2",
-        "node-dht-sensor": "^0.4.3"
+        "@types/webos-service": "^0.4.2"
     }
 }

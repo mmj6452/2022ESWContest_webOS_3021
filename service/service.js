@@ -1,6 +1,5 @@
 const pkgInfo = require("./package.json");
 const Service = require("webos-service");
-// const sensor = require("node-dht-sensor");
 
 const service = new Service(pkgInfo.name);
 const logHeader = "[" + pkgInfo.name + "]";
@@ -26,8 +25,6 @@ service.register("init", () => {
   });
 });
 
-// service.call(`luna://${pkgInfo.name}/init`, {}, () => {});
-
 service.register("setLedState", (msg) => {
   const url = "luna://com.webos.service.peripheralmanager/gpio/setValue";
   const params = {
@@ -49,12 +46,6 @@ service.register("loop", (message) => {
   // Set interval
   const interval = setInterval(() => {
     // loop
-    // sensor.read(11, 17, (err, temperature, humidity) => {
-    //   msg.respond({
-    //     returnValue: true,
-    //     Response: temperature,
-    //   });
-    // });
   });
 
   // Subscribe heartbeat
