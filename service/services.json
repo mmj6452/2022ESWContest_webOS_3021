@@ -1,0 +1,10 @@
+{
+  "id": "com.dabyeol.riumaqua.service",
+  "description": "HelloWorld Service",
+  "services": [
+    {
+      "name": "com.dabyeol.riumaqua.service"
+    }
+  ],
+  "version": "0.0.1"
+}
