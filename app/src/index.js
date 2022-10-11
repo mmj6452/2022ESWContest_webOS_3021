@@ -9,16 +9,16 @@ import LS2Request from "@enact/webos/LS2Request";
 const bridge = new LS2Request();
 const serviceUrl = "luna://com.dabyeol.riumaqua.service";
 
-// Init
-const request = {
+// Start websocket server
+request = {
   service: serviceUrl,
-  method: "init",
+  method: "startServer",
   parameters: {},
   onSuccess: () => {
-    console.log("success - init");
+    console.log("success - startServer");
   },
   onFailure: (e) => {
-    console.log("failure - init " + e.returnValue);
+    console.log("failure - startServer " + e.returnValue);
   },
 };
 bridge.send(request);

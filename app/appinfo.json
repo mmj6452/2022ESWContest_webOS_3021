@@ -1,7 +1,7 @@
 {
   "id": "com.dabyeol.riumaqua",
   "version": "0.0.1",
-  "vendor": "My Company",
+  "vendor": "Dabyeol",
   "type": "web",
   "main": "index.html",
   "title": "Rium Aqua",
@@ -9,6 +9,7 @@
   "requiredPermissions": [
     "time.query",
     "activity.operation",
-    "peripheralmanager.gpio.operation"
+    "peripheralmanager.gpio.operation",
+    "com.dabyeol.riumaqua.service.group"
   ]
 }

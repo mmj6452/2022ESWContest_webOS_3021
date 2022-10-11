@@ -1,52 +1,141 @@
 const pkgInfo = require("./package.json");
 const Service = require("webos-service");
+const cv = require("opencv.js");
 
 const service = new Service(pkgInfo.name);
 const logHeader = "[" + pkgInfo.name + "]";
 
-service.register("init", () => {
-  // Open GPIO
-  let url = "luna://com.webos.service.peripheralmanager/gpio/open";
-  let params = {
-    pin: "gpio4",
-  };
-  service.call(url, params, (m2) => {
-    console.log(logHeader, m2);
-  });
+const express = require("express");
+const app = express();
+const expressWs = require("express-ws")(app);
+const aWss = expressWs.getWss("/");
+const port = 3000;
 
-  // Init GPIO
-  url = "luna://com.webos.service.peripheralmanager/gpio/setDirection";
-  params = {
-    pin: "gpio4",
-    direction: "outLow",
-  };
-  service.call(url, params, (m2) => {
-    console.log(logHeader, m2);
+const imageWidth = 480;
+const imageHeight = 320;
+
+const data = {
+  temperature: 30,
+  turbidity: 70,
+  feed: 10,
+  illuminance: 10,
+  waterChange: 14,
+};
+
+let userTemperature = 26;
+let waterCycle = 14;
+let feedingInterval = 8;
+let lighting = 1;
+let rawImage = null;
+let image;
+
+app.use(function (req, res, next) {
+  console.log("middleware");
+  req.testing = "testing";
+  return next();
+});
+
+app.ws("/", function (ws, req) {
+  console.log("Connected.");
+  ws.on("message", (message) => {
+    console.log("Received: ", message);
+
+    let isBinary = false;
+    let msg;
+    try {
+      msg = JSON.parse(message);
+    } catch (e) {
+      isBinary = true;
+    }
+
+    if (isBinary) {
+      rawImage = {
+        width: imageWidth,
+        height: imageHeight,
+        data: message,
+      };
+      image = message.toString("base64");
+    } else {
+      if (msg.msgType === "sendValue") {
+        if (msg.deviceType === "data") {
+          data.temperature = msg.temperature;
+          data.illuminance = msg.illuminance;
+        }
+      }
+    }
   });
 });
 
-service.register("setLedState", (msg) => {
-  const url = "luna://com.webos.service.peripheralmanager/gpio/setValue";
-  const params = {
-    pin: "gpio4",
-    value: msg.payload.value ? "high" : "low",
+const feed = () => {
+  if (data.feed) {
+    data.feed--;
+
+    // Feeder
+    const command = {
+      msgType: "command",
+      deviceType: "feeder",
+      status: 1,
+    };
+    broadCastMessage(JSON.stringify(command));
+  }
+
+  setTimeout(feed, feedingInterval * 1000);
+};
+
+const loop = () => {
+  // Heater
+  let command = {
+    msgType: "command",
+    deviceType: "heater",
+    status: data.temperature < userTemperature,
   };
-  service.call(url, params, (m2) => {
-    console.log(logHeader, m2);
-    msg.respond({
-      returnValue: m2.payload.returnValue,
-      Response: m2.payload.errorText,
-    });
-  });
-});
+  broadCastMessage(JSON.stringify(command));
 
-service.register("getCdsState", (msg) => {});
+  // Filter
+  if (data.waterChange) data.waterChange--;
+  command = {
+    msgType: "command",
+    deviceType: "filter",
+    status: data.waterChange ? 1 : 0,
+  };
+  broadCastMessage(JSON.stringify(command));
 
-service.register("loop", (message) => {
-  // Set interval
-  const interval = setInterval(() => {
-    // loop
+  // Turbidity
+  if (rawImage) {
+    const src = cv.matFromImageData(rawImage);
+    let hsv = new cv.Mat();
+    cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
+    let dst = new cv.Mat();
+    const lowScalar = new cv.Scalar(40, 10, 10, 0);
+    const highScalar = new cv.Scalar(80, 200, 255, 255);
+    const low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lowScalar);
+    const high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), highScalar);
+    cv.inRange(hsv, low, high, dst);
+    data.turbidity = (
+      (cv.countNonZero(dst) / (dst.rows * dst.cols)) *
+      10000
+    ).toFixed(0);
+  }
+};
+
+const broadCastMessage = (message) => {
+  aWss.clients.forEach(function (client) {
+    try {
+      client.send(message);
+    } catch (e) {
+      console.log(e);
+    }
   });
+};
+
+// Start websocket server
+service.register("startServer", (msg) => {
+  console.log("Starting...");
+  app.listen(port);
+  console.log("Started.");
+
+  setTimeout(feed, feedingInterval * 1000);
+  setInterval(loop, 1000);
 
   // Subscribe heartbeat
   const sub = service.subscribe(`luna://${pkgInfo.name}/heartbeat`, {
@@ -54,6 +143,111 @@ service.register("loop", (message) => {
   });
   sub.addListener("response", (msg) => {
     console.log(JSON.stringify(msg.payload));
+  });
+
+  // Response
+  msg.respond({
+    returnValue: true,
+    Response: "Server started.",
+  });
+});
+
+service.register("getData", (msg) => {
+  msg.respond({
+    returnValue: true,
+    data: data,
+  });
+});
+
+// 먹이
+service.register("resetFeed", (msg) => {
+  data.feed = 100;
+  msg.respond({
+    returnValue: true,
+  });
+});
+
+service.register("getFeedingInterval", (msg) => {
+  msg.respond({
+    returnValue: true,
+    data: feedingInterval,
+  });
+});
+
+service.register("setFeedingInterval", (msg) => {
+  feedingInterval = msg.payload.value;
+  msg.respond({
+    returnValue: true,
+  });
+});
+
+// 탁도, 물갈이
+service.register("resetWaterChange", (msg) => {
+  data.waterChange = waterCycle;
+  msg.respond({
+    returnValue: true,
+  });
+});
+
+service.register("getWaterCycle", (msg) => {
+  msg.respond({
+    returnValue: true,
+    data: waterCycle,
+  });
+});
+
+service.register("setWaterCycle", (msg) => {
+  waterCycle = msg.payload.value;
+  msg.respond({
+    returnValue: true,
+  });
+});
+
+// 수온
+service.register("getUserTemperature", (msg) => {
+  msg.respond({
+    returnValue: true,
+    data: userTemperature,
+  });
+});
+
+service.register("setUserTemperature", (msg) => {
+  userTemperature = msg.payload.value;
+  msg.respond({
+    returnValue: true,
+  });
+});
+
+// 조명
+service.register("getLighting", (msg) => {
+  msg.respond({
+    returnValue: true,
+    data: lighting,
+  });
+});
+
+service.register("setLighting", (msg) => {
+  lighting = msg.payload.value;
+
+  // TODO: Lighting
+  const command = {
+    msgType: "command",
+    deviceType: "lighting",
+    status: lighting,
+  };
+
+  broadCastMessage(JSON.stringify(command));
+
+  msg.respond({
+    returnValue: true,
+  });
+});
+
+// 영상
+service.register("getImage", (msg) => {
+  msg.respond({
+    returnValue: true,
+    data: image,
   });
 });
 
