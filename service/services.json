@@ -1,6 +1,6 @@
 {
   "id": "com.dabyeol.riumaqua.service",
-  "description": "HelloWorld Service",
+  "description": "Rium Aqua Service",
   "services": [
     {
       "name": "com.dabyeol.riumaqua.service"
