@@ -10,7 +10,7 @@ const bridge = new LS2Request();
 const serviceUrl = "luna://com.dabyeol.riumaqua.service";
 
 // Start websocket server
-request = {
+const request = {
   service: serviceUrl,
   method: "startServer",
   parameters: {},
