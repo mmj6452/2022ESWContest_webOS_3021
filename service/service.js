@@ -14,6 +14,10 @@ const port = 3000;
 const imageWidth = 480;
 const imageHeight = 320;
 
+const hour = 1000;
+const day = 1000;
+const loopInterval = 1000;
+
 const data = {
   temperature: 30,
   turbidity: 70,
@@ -79,7 +83,17 @@ const feed = () => {
     broadCastMessage(JSON.stringify(command));
   }
 
-  setTimeout(feed, feedingInterval * 1000);
+  setTimeout(feed, feedingInterval * hour);
+};
+
+const filter = () => {
+  if (data.waterChange) data.waterChange--;
+  command = {
+    msgType: "command",
+    deviceType: "filter",
+    status: data.waterChange ? 1 : 0,
+  };
+  broadCastMessage(JSON.stringify(command));
 };
 
 const loop = () => {
@@ -88,15 +102,6 @@ const loop = () => {
     msgType: "command",
     deviceType: "heater",
     status: data.temperature < userTemperature,
-  };
-  broadCastMessage(JSON.stringify(command));
-
-  // Filter
-  if (data.waterChange) data.waterChange--;
-  command = {
-    msgType: "command",
-    deviceType: "filter",
-    status: data.waterChange ? 1 : 0,
   };
   broadCastMessage(JSON.stringify(command));
 
@@ -134,8 +139,9 @@ service.register("startServer", (msg) => {
   app.listen(port);
   console.log("Started.");
 
-  setTimeout(feed, feedingInterval * 1000);
-  setInterval(loop, 1000);
+  setTimeout(feed, feedingInterval * hour);
+  setInterval(loop, loopInterval);
+  setInterval(filter, day);
 
   // Subscribe heartbeat
   const sub = service.subscribe(`luna://${pkgInfo.name}/heartbeat`, {
