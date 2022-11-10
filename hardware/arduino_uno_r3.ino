@@ -22,8 +22,8 @@ int p3 = 10;
 int p4 = 11;
 int stepsPerRev = lap;
 int stepDelay = 1100;
-Unistep2 stepperX(p1, p2, p3, p4, stepsPerRev, stepDelay);
-  
+Unistep2 stepper(p1, p2, p3, p4, stepsPerRev, stepDelay);
+
 // Illuminance  configuration
 #define CDSPIN A0
 int cds = 0;
@@ -44,14 +44,9 @@ void setup() {
   digitalWrite(LEDGND, LOW);
   digitalWrite(CDSGND, LOW);
   digitalWrite(CDS5V, HIGH);
-
-  // Init stepper
-  //stepper.setSpeed(speed);
-
 }
 
 void loop() {
- 
   if (Serial.available()) {
     // Read serial data
     int message = Serial.read();
@@ -74,14 +69,16 @@ void loop() {
     case HEATER:
       digitalWrite(HEATERPIN, value);
       break;
-    case FEEDER: 
-      stepperX.move(lap);  
+    case FEEDER:
+      stepper.move(lap);
       break;
     }
 
     // Write serial data
     cds = analogRead(CDSPIN);
     Serial.write(cds / 10);
-    stepperX.run();
+
+    // TODO: test
+    stepper.run();
   }
 }
