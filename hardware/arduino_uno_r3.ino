@@ -77,8 +77,7 @@ void loop() {
     // Write serial data
     cds = analogRead(CDSPIN);
     Serial.write(cds / 10);
-
-    // TODO: test
-    stepper.run();
   }
+
+  stepper.run();
 }
