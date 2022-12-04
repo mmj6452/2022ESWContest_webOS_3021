@@ -19,6 +19,10 @@ const loopInterval = 1000;
 const lowScalar = new cv.Scalar(30, 31, 31);
 const highScalar = new cv.Scalar(90, 191, 191);
 
+const W3CWebSocket = require("websocket").w3cwebsocket;
+const serverUrl = "ws://riumaqua.dabyeol.com:3001";
+let client;
+
 const data = {
   temperature: 30,
   turbidity: 70,
@@ -131,6 +135,15 @@ const loop = () => {
   if (imageBuffer) {
     data.turbidity = getTurbidity();
   }
+
+  // TODO: Client
+  if (client) {
+    const msg = {
+      msgType: "data",
+      value: data,
+    };
+    client.send(JSON.stringify(msg));
+  }
 };
 
 const broadCastMessage = (message) => {
@@ -143,8 +156,9 @@ const broadCastMessage = (message) => {
   });
 };
 
-// Start websocket server
+// Start websocket server and connect
 service.register("startServer", (msg) => {
+  // Server
   console.log("Starting...");
   app.listen(port);
   console.log("Started.");
@@ -152,6 +166,27 @@ service.register("startServer", (msg) => {
   setTimeout(feed, feedingInterval * hour);
   setInterval(loop, loopInterval);
   setInterval(filter, day);
+
+  // Client
+  client = new W3CWebSocket(serverUrl);
+
+  client.onerror = function () {
+    console.log("Connection Error");
+  };
+
+  client.onopen = function () {
+    console.log("WebSocket Client Connected");
+  };
+
+  client.onclose = function () {
+    console.log("echo-protocol Client Closed");
+  };
+
+  client.onmessage = function (e) {
+    if (typeof e.data === "string") {
+      console.log("Received: '" + e.data + "'");
+    }
+  };
 
   // Subscribe heartbeat
   const sub = service.subscribe(`luna://${pkgInfo.name}/heartbeat`, {
@@ -245,7 +280,6 @@ service.register("getLighting", (msg) => {
 service.register("setLighting", (msg) => {
   lighting = msg.payload.value;
 
-  // TODO: Lighting
   const command = {
     msgType: "command",
     deviceType: "lighting",

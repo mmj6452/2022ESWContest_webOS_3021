@@ -3,43 +3,41 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Album from "./routes/Album";
 import Camera from "./routes/Camera";
 import Main from "./routes/Main";
+import { w3cwebsocket } from "websocket";
+
+const ws = new w3cwebsocket("ws://riumaqua.dabyeol.com:3001");
 
 function App() {
-  const [items, setItems] = useState([]);
+  const [data, setData] = useState({
+    temperature: 26,
+    turbidity: 10,
+    feed: 90,
+    illuminance: 50,
+    waterChange: 14,
+  });
 
-  const webSocketUrl = "ws://websocket.com";
-  let ws = useRef(null);
+  // useEffect(() => {
+  //   setInterval(() => {
+  //     // ws.send();
+  //   }, 1000);
+  // });
 
-  // 소켓 객체 생성
-  useEffect(() => {
-    if (!ws.current) {
-      ws.current = new WebSocket(webSocketUrl);
-      ws.current.onopen = () => {
-        console.log("connected to " + webSocketUrl);
-      };
-      ws.current.onclose = () => {
-        console.log("disconnect from " + webSocketUrl);
-      };
-      ws.current.onerror = () => {
-        console.log("connection error " + webSocketUrl);
-      };
-      ws.current.onmessage = (message) => {
-        const data = JSON.parse(message.data);
-        console.log(data);
-        setItems((prevItems) => [...prevItems, data]);
-      };
+  ws.onopen = () => {
+    console.log("Websocket connected.");
+  };
+
+  ws.onmessage = (e) => {
+    console.log("Receive: " + e.data);
+    const msg = JSON.parse(e.data);
+    if (msg.msgType === "data") {
+      setData(msg.value);
     }
-
-    return () => {
-      console.log("clean up");
-      ws.current.close();
-    };
-  }, []);
+  };
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Main />} />
+        <Route path="/" element={<Main data={data} ws={ws} />} />
         <Route path="/camera" element={<Camera />} />
         <Route path="/album" element={<Album />} />
       </Routes>

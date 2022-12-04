@@ -14,6 +14,7 @@
         "express": "^4.18.1",
         "express-ws": "^5.0.2",
         "jpeg-js": "^0.4.4",
-        "opencv.js": "^1.2.1"
+        "opencv.js": "^1.2.1",
+        "websocket": "^1.0.34"
     }
 }
