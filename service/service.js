@@ -1,6 +1,7 @@
 const pkgInfo = require("./package.json");
 const Service = require("webos-service");
 const cv = require("opencv.js");
+const jpeg = require("jpeg-js");
 
 const service = new Service(pkgInfo.name);
 const logHeader = "[" + pkgInfo.name + "]";
@@ -11,12 +12,12 @@ const expressWs = require("express-ws")(app);
 const aWss = expressWs.getWss("/");
 const port = 3000;
 
-const imageWidth = 480;
-const imageHeight = 320;
-
 const hour = 1000;
 const day = 1000;
 const loopInterval = 1000;
+
+const lowScalar = new cv.Scalar(30, 31, 31);
+const highScalar = new cv.Scalar(90, 191, 191);
 
 const data = {
   temperature: 30,
@@ -30,8 +31,8 @@ let userTemperature = 26;
 let waterCycle = 14;
 let feedingInterval = 8;
 let lighting = 1;
-let rawImage = null;
 let image;
+let imageBuffer;
 
 app.use(function (req, res, next) {
   console.log("middleware");
@@ -53,11 +54,7 @@ app.ws("/", function (ws, req) {
     }
 
     if (isBinary) {
-      rawImage = {
-        width: imageWidth,
-        height: imageHeight,
-        data: message,
-      };
+      imageBuffer = message;
       image = message.toString("base64");
     } else {
       if (msg.msgType === "sendValue") {
@@ -96,6 +93,31 @@ const filter = () => {
   broadCastMessage(JSON.stringify(command));
 };
 
+const getTurbidity = () => {
+  const rawImageData = jpeg.decode(imageBuffer);
+  const src = cv.matFromImageData(rawImageData);
+  cv.cvtColor(src, src, cv.COLOR_RGBA2RGB);
+
+  let hsv = new cv.Mat();
+  cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
+
+  let dst = new cv.Mat();
+  const low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lowScalar);
+  const high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), highScalar);
+  cv.inRange(hsv, low, high, dst);
+
+  let rgbaPlanes = new cv.MatVector();
+  cv.split(src, rgbaPlanes);
+
+  let srcG = rgbaPlanes.get(1);
+  let dstG = new cv.Mat();
+  cv.bitwise_and(srcG, dst, dstG);
+
+  const result = cv.mean(dstG);
+
+  return Number.parseFloat(result).toFixed(0);
+};
+
 const loop = () => {
   // Heater
   let command = {
@@ -106,20 +128,8 @@ const loop = () => {
   broadCastMessage(JSON.stringify(command));
 
   // Turbidity
-  if (rawImage) {
-    const src = cv.matFromImageData(rawImage);
-    let hsv = new cv.Mat();
-    cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
-    let dst = new cv.Mat();
-    const lowScalar = new cv.Scalar(40, 10, 10, 0);
-    const highScalar = new cv.Scalar(80, 200, 255, 255);
-    const low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), lowScalar);
-    const high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), highScalar);
-    cv.inRange(hsv, low, high, dst);
-    data.turbidity = (
-      (cv.countNonZero(dst) / (dst.rows * dst.cols)) *
-      10000
-    ).toFixed(0);
+  if (imageBuffer) {
+    data.turbidity = getTurbidity();
   }
 };
 
