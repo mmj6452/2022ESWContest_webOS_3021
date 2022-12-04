@@ -103,7 +103,12 @@ const MainPanel = ({
             ? `물갈이 ${waterChange}일 남았습니다.`
             : "물을 갈아주세요."}
         </Item>
-        {indicators[2].progress <= 15 ? <Item>먹이를 보충해주세요.</Item> : ""}
+        {indicators[1].progress >= 50 && (
+          <Item>
+            탁도가 높습니다. 여과기 필터 및 물고기 폐사 여부를 확인해주세요.
+          </Item>
+        )}
+        {indicators[2].progress <= 15 && <Item>먹이를 보충해주세요.</Item>}
       </div>
     </Panel>
   );

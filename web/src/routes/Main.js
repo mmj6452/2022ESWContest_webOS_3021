@@ -34,8 +34,13 @@ function Main() {
           </Row>
         </div>
 
-        {waterChange && <Alert variant="warning">물을 갈아주세요</Alert>}
-        {feed <= 15 && <Alert variant="warning">먹이를 보충해주세요</Alert>}
+        {waterChange && <Alert variant="warning">물을 갈아주세요.</Alert>}
+        {turbidity >= 50 && (
+          <Alert variant="warning">
+            탁도가 높습니다. 여과기 필터 및 물고기 폐사 여부를 확인해주세요.
+          </Alert>
+        )}
+        {feed <= 15 && <Alert variant="warning">먹이를 보충해주세요.</Alert>}
       </Container>
     </>
   );
