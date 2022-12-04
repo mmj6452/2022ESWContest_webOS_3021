@@ -9,24 +9,24 @@ function Temperature({ value, ws, ...props }) {
   const [modalShow, setModalShow] = useState(false);
   const [userTemperature, setUserTemperature] = useState(30);
 
-  if (ws) {
-    const msg = {
-      method: "getUserTemperature",
-    };
-    ws.send(JSON.stringify(msg));
-  }
+  // if (ws) {
+  //   const msg = {
+  //     method: "getUserTemperature",
+  //   };
+  //   ws.send(JSON.stringify(msg));
+  // }
 
   function handleChange(value) {
     setUserTemperature(value);
 
-    if (ws) {
-      const msg = {
-        method: "setUserTemperature",
-        value: value,
-      };
+    // if (ws) {
+    //   const msg = {
+    //     method: "setUserTemperature",
+    //     value: value,
+    //   };
 
-      ws.send(JSON.stringify(msg));
-    }
+    //   ws.send(JSON.stringify(msg));
+    // }
   }
 
   return (
